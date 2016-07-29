@@ -73,8 +73,8 @@ public class Appointment extends AbstractAppointment implements Comparable<Appoi
 
   /**
    * Compares to another appointment, sorting by start time, then end time, then description.
-   * @param other
-   * @return
+   * @param other The appointment to compare to
+   * @return Relative ordering of the two appointments
      */
   @Override
   public int compareTo(Appointment other) {

@@ -28,6 +28,6 @@ public class AppointmentBook extends AbstractAppointmentBook<Appointment> {
         if(appts.add(appointment) == false) {
             System.err.println("That appointment already exists");
             System.exit(1);
-        };
+        }
     }
 }

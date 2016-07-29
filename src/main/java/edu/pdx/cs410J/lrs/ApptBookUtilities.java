@@ -17,6 +17,7 @@ public class ApptBookUtilities {
      * Parses a date from the machine-readable storage format.
      * @param dateTimeString A string date/time to check, expected format "MM/dd/yyyy HH:mm"
      * @return true if string is a valid date/time in "MM/dd/yyyy HH:mm" format, false otherwise
+     * @throws ParseException if date cannot be parsed
      */
     public static Date parseDateTime(String dateTimeString) throws ParseException {
         dateStorageFormat.setLenient(false);

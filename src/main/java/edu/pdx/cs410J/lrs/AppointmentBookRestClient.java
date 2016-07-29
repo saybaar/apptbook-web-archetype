@@ -9,8 +9,6 @@ import static edu.pdx.cs410J.lrs.ApptBookUtilities.dumpDateTime;
 
 /**
  * A helper class for accessing the rest client
- * TODO: The client should definitely capture and handle errors from the servlet.
- * TODO: Whether and how it passes those on to the main method is a design concern.
  */
 public class AppointmentBookRestClient extends HttpRequestHelper
 {
@@ -18,7 +16,6 @@ public class AppointmentBookRestClient extends HttpRequestHelper
     private static final String SERVLET = "appointments";
 
     private final String url;
-
 
     /**
      * Creates a client to the appointment book REST service running on the given host and port
@@ -31,30 +28,43 @@ public class AppointmentBookRestClient extends HttpRequestHelper
     }
 
     /**
-     * TODO: Do we need this at all if we can't pretty-print from the command line?
+     * Sends a GET to the url, specifying owner, beginTime, and endTime; servlet will interpret this as a search
+     * @param ownerName Owner whose appointments to search
+     * @param startTime Start date for search
+     * @param endTime End date for search
+     * @return Servlet's response
+     * @throws IOException if server throws one
      */
-    public Response getApptBookForOwner( String ownerName ) throws IOException
-    {
-        return get(this.url, "owner", ownerName);
-    }
-
-    public Response getApptsForOwnerAndSearch(String ownerName, Date startTime, Date endTime ) throws IOException
+    public Response searchForAppointments(String ownerName, Date startTime, Date endTime ) throws IOException
     {
         return get(this.url, "owner", ownerName, "beginTime", dumpDateTime(startTime), "endTime", dumpDateTime(endTime));
     }
 
+    /**
+     * Sends a POST to the url, specifying owner, description, beginTime, and endTime; servlet will interpret this as
+     * a new appointment to be added
+     * @param ownerName Appointment's owner
+     * @param description Appointment's description
+     * @param startTime Appointment's start date
+     * @param endTime Appointment's end date
+     * @return Servlet's response
+     * @throws IOException if server throws one
+     */
     public Response addAppointment(String ownerName, String description, Date startTime, Date endTime ) throws IOException
     {
         return postToMyURL("owner", ownerName, "description", description, "beginTime", dumpDateTime(startTime),
                 "endTime", dumpDateTime(endTime));
     }
 
+    /**
+     * Utility method that posts the given parameters to the url
+     * @param parameters String parameters to post
+     * @return Servlet's response
+     * @throws IOException if server throws one
+     */
     @VisibleForTesting
-    Response postToMyURL(String... keysAndValues) throws IOException {
-        return post(this.url, keysAndValues);
+    Response postToMyURL(String... parameters) throws IOException {
+        return post(this.url, parameters);
     }
 
-    public Response removeAllMappings() throws IOException {
-        return delete(this.url);
-    }
 }

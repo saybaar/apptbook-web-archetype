@@ -13,13 +13,17 @@ import java.util.List;
 /**
  * The main class that parses the command line and communicates with the
  * Appointment Book server using REST.
- * //TODO Error to not specify host and port? No - just revert to project 1 behavior
  */
 public class Project4 {
 
     public static final String MISSING_ARGS = "Missing command line arguments";
-    enum mode {ADD, SEARCH};
+    enum mode {ADD, SEARCH}
 
+    /**
+     * Main method for project 4; does command-line parsing and date validation, makes a request to the server
+     * if appropriate, and prints output if appropriate
+     * @param args command-line arguments to parse
+     */
     public static void main(String... args) {
         String hostName = null;
         String portString = null;
@@ -44,20 +48,20 @@ public class Project4 {
                 try {
                     hostName = args[++i];
                 } catch (ArrayIndexOutOfBoundsException e) {
-                    error("-host flag requires a value");
+                    usage(MISSING_ARGS);
                 }
             } else if (args[i].equals("-port")) {
                 try {
                     portString = args[++i];
                 } catch (ArrayIndexOutOfBoundsException e) {
-                    error("-port flag requires a value");
+                    usage(MISSING_ARGS);
                 }
             } else if (args[i].equals("-search")) {
                 activeMode = mode.SEARCH;
             } else if (args[i].equals("-print")) {
                 shouldPrint = true;
             } else {
-                error("Unrecognized flag: " + args[i]);
+                usage("Unrecognized flag: " + args[i]);
             }
         }
         for(; i < args.length; i++) {
@@ -78,8 +82,7 @@ public class Project4 {
             } else if(endTimeAMPM == null) {
                 endTimeAMPM = args[i];
             } else {
-                System.err.println("Too many options; expected: owner [description] beginTime endTime");
-                System.exit(1);
+                usage("Too many options");
             }
         }
 
@@ -94,13 +97,8 @@ public class Project4 {
         }
         for(String option : necessaryOptionsList) {
             if (option == null) {
-                error("Too few options; expected: owner [description] beginTime endTime");
+                usage(MISSING_ARGS);
             }
-        }
-
-        //Check for empty description:
-        if(description.isEmpty()) {
-            error("Description may not be empty");
         }
 
         //Check validity of date and time and convert to Date objects:
@@ -112,14 +110,25 @@ public class Project4 {
             endDateTime = ApptBookUtilities.parseDateTime(endTimeDate + " " + endTimeTime +
                     " " + endTimeAMPM);
         } catch (ParseException e) {
-            error("Invalid date/time format; expected: mm/dd/yyyy hh:mm xm");
+            usage("Invalid date/time format");
         }
 
-        if (hostName == null) {
-            usage( MISSING_ARGS );
+        if ((hostName == null) != (portString == null)) {
+            usage("Must specify both host and port, or neither");
 
-        } else if ( portString == null) {
-            usage( "Missing port" );
+        } else if ( hostName == null && portString == null) {
+            //Project 1 behavior
+            if(activeMode == mode.SEARCH) {
+                usage("Must specify a host and port for search mode");
+            } else {
+                AppointmentBook apptBook = new AppointmentBook(owner);
+                Appointment appt = new Appointment(description, beginDateTime, endDateTime);
+                apptBook.addAppointment(appt);
+                if(shouldPrint) {
+                    System.out.println(appt.toString());
+                }
+                System.exit(0);
+            }
         }
 
         int port;
@@ -133,34 +142,43 @@ public class Project4 {
 
         AppointmentBookRestClient client = new AppointmentBookRestClient(hostName, port);
 
-        HttpRequestHelper.Response response;
+        HttpRequestHelper.Response response = null;
         try {
             if (activeMode == mode.ADD) {
+                //Check for empty description:
+                if(description.isEmpty()) {
+                    usage("Description may not be empty when adding a new appointment");
+                }
                 response = client.addAppointment(owner, description, beginDateTime, endDateTime);
-
+                checkResponseCode( HttpURLConnection.HTTP_OK, response);
+                if(shouldPrint) {
+                    System.out.println(response.getContent());
+                }
             } else if (activeMode == mode.SEARCH) {
-                response = client.getApptsForOwnerAndSearch(owner, beginDateTime, endDateTime);
-
+                response = client.searchForAppointments(owner, beginDateTime, endDateTime);
+                checkResponseCode( HttpURLConnection.HTTP_OK, response);
+                System.out.println(response.getContent());
             } else {
-                // Post the owner/description pair
-                response = client.getApptBookForOwner(owner);
+                error("Unrecognized mode - we should never be here - bad news bears!!");
             }
 
-            checkResponseCode( HttpURLConnection.HTTP_OK, response);
 
         } catch ( IOException ex ) {
             error("While contacting server: " + ex);
             return;
         }
 
-        System.out.println(response.getContent());
-
         System.exit(0);
     }
 
-
+    /**
+     * Prints README for project 4
+     */
     private static void printReadMe() {
-        //TODO!
+        System.out.print("\n\nLydia Simmons - Advanced Java Project 4\n\n" +
+                "This program connects to a servlet and either adds an appointment\n" +
+                "or searches for existing appointments between two times. \n\n" +
+                getUsageString() + "\n\n");
     }
 
     /**
@@ -176,6 +194,10 @@ public class Project4 {
         }
     }
 
+    /**
+     * Prints an error and exits
+     * @param message Error message to print
+     */
     private static void error( String message )
     {
         PrintStream err = System.err;
@@ -193,17 +215,32 @@ public class Project4 {
         PrintStream err = System.err;
         err.println("** " + message);
         err.println();
-        err.println("usage: java Project4 host port [key] [value]");
-        err.println("  host    Host of web server");
-        err.println("  port    Port of web server");
-        err.println("  key     Key to query");
-        err.println("  value   Value to add to server");
-        err.println();
-        err.println("This simple program posts key/value pairs to the server");
-        err.println("If no value is specified, then all values are printed");
-        err.println("If no key is specified, all key/value pairs are printed");
+        err.println(getUsageString());
         err.println();
 
         System.exit(1);
+    }
+
+    /**
+     * Returns a string that specifies parameters and usage. Used for error feedback and README.
+     * @return Usage string
+     */
+    private static String getUsageString() {
+        StringBuilder sb = new StringBuilder();
+
+        sb.append("usage: [-host hostname] [-port portname] [-README] [-print] [-search] owner description beginTime endTime\n");
+        sb.append("  hostname    Host of web server\n");
+        sb.append("  portname    Port of web server\n");
+        sb.append("  owner       Appointment book owner\n");
+        sb.append("  description Description (for new appointment only)\n");
+        sb.append("  beginTime   Start time (mm/dd/yyyy hh:mm xm)\n");
+        sb.append("  endTime     End time (mm/dd/yyyy hh:mm xm)\n");
+        sb.append("\n");
+        sb.append("If -search is enabled, only owner, beginTime, and endTime are expected.\n");
+        sb.append("If -host and -port are omitted, the program will not search but will\n");
+        sb.append("create an appointment without saving it anywhere. \n");
+        sb.append("If -print is enabled, the newly created appointment will be printed out.\n");
+
+        return sb.toString();
     }
 }

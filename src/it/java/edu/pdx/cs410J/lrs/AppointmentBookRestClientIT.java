@@ -25,13 +25,14 @@ public class AppointmentBookRestClientIT {
     return new AppointmentBookRestClient(HOSTNAME, port);
   }
 
+  /*
   @Test
   public void test0RemoveAllMappings() throws IOException {
     AppointmentBookRestClient client = newAppointmentBookRestClient();
     Response response = client.removeAllMappings();
     assertThat(response.getContent(), response.getCode(), equalTo(200));
   }
-/*
+
   @Test
   public void test1EmptyServerContainsNoMappings() throws IOException {
     AppointmentBookRestClient client = newAppointmentBookRestClient();

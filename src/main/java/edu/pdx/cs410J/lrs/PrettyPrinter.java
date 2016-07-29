@@ -24,7 +24,7 @@ public class PrettyPrinter implements AppointmentBookDumper {
      * Pretty-prints the given AppointmentBook to file at the location given by the PrettyPrinter's filePath string.
      * If that path is "-", prints to stdout instead of a file.
      * @param apptBook The appointment book to dump
-     * @throws IOException
+     * @throws IOException if something goes wrong while writing
      */
     @Override
     public void dump(AbstractAppointmentBook apptBook) throws IOException {
